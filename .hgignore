@@ -1,0 +1,14 @@
+syntax: glob
+Debug
+bin
+obj
+*.suo
+*.csproj.user
+Release
+*.ncb
+Int
+a.bat
+*.pidb
+doc
+targets
+.build_out
