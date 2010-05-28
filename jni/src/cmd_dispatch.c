@@ -46,22 +46,13 @@ static struct cmd_dispatch dispatch_table[] = {
 		"wifi_wait_for_event", do_wifi_wait_for_event }, { "wifi_command",
 		do_wifi_command }, { NULL, NULL } };
 
-void do_test_cmd() {
-	struct cmd_dispatch *c;
-
-	for (c = dispatch_table; c->cmd != NULL; c++) {
-		LOGD("test dispatch_cmd(%s):", c->cmd);
-
-		c->dispatch(0, c->cmd);
-	}
-}
-
 int process_framework_command(int socket) {
 	int rc;
 	char buffer[101];
 	int start = 0;
 	int i;
 	int len;
+	int offset;
 
 	LOGD("start to read framework");
 
@@ -73,17 +64,25 @@ int process_framework_command(int socket) {
 
 	LOGD("frame command length:%d", len);
 
-	if ((rc = read(socket, buffer, len)) < 0) {
-		LOGE("Unable to read framework command (%s)", strerror(errno));
-		return -errno;
-	} else if (!rc)
-		return -ECONNRESET;
+	rc = 0;
+	offset = 0;
+
+	do {
+		if ((rc = read(socket, buffer + offset, len)) < 0) {
+			LOGE("Unable to read framework command (%s)", strerror(errno));
+			return -errno;
+		} else if (!rc)
+			return -ECONNRESET;
+
+		len -= rc;
+		offset += rc;
+	} while (len > 0);
 
 	buffer[rc] = 0;
 
 	LOGD("frame command read:%d,%d,%s", len, rc, buffer);
 
-	for (i = 0; i < rc; i++) {
+	for (i = 0; i <= rc; i++) {
 		if (buffer[i] == 0) {
 			dispatch_cmd(socket, buffer + start);
 			start = i + 1;
@@ -99,7 +98,9 @@ static void dispatch_cmd(int sock, char *cmd) {
 
 	for (c = dispatch_table; c->cmd != NULL; c++) {
 		if (!strncmp(c->cmd, cmd, strlen(c->cmd))) {
+			LOGD("begin dispatch_cmd([%s]):", cmd);
 			c->dispatch(sock, cmd);
+			LOGD("end dispatch_cmd([%s]):", cmd);
 			return;
 		}
 	}
@@ -111,11 +112,14 @@ static int do_wifi_wait_for_event(int sock, char *cmd) {
 	char * buf = NULL;
 	size_t len = atol(&cmd[strlen("wifi_wait_for_event")]);
 
-	buf = (char *) malloc(sizeof(char) * len);
+	buf = (char *) malloc(sizeof(char) * (len + 1));
 
 	LOGD("do_wifi_wait_for_event:before %d", len);
 
 	len = vendor_wifi_wait_for_event(buf, len);
+
+	if (len >= 0)
+		buf[len] = 0;
 
 	LOGD("do_wifi_wait_for_event:after %d,%s", len, buf);
 
@@ -135,15 +139,20 @@ static int do_wifi_command(int sock, char *cmd) {
 	int pos = 0;
 	size_t len = 0;
 	char * wifi_cmd = NULL;
+	int cmd_len = strlen(cmd);
 
-	for (pos = 0; pos < strlen(cmd); pos++) {
-		if (cmd[pos] == ' ') {
+	LOGD("do_wifi_command:before check %d %s", cmd_len, cmd);
+
+	for (pos = 0; pos < cmd_len; pos++) {
+		if (cmd[pos] == '|') {
 			cmd[pos] = 0;
 			break;
 		}
 	}
 
-	if (pos == 0 || pos == strlen(cmd)) {
+	LOGD("do_wifi_command:after check %d %d %s", pos, cmd_len, cmd);
+
+	if (pos == 0 || pos == cmd_len) {
 		len = -1;
 
 		write(sock, &len, sizeof(size_t));
@@ -154,13 +163,15 @@ static int do_wifi_command(int sock, char *cmd) {
 	wifi_cmd = &cmd[strlen("wifi_command")];
 	len = atol(&cmd[pos + 1]);
 
-	buf = (char *) malloc(sizeof(char) * len);
+	buf = (char *) malloc(sizeof(char) * len + 1);
 
 	LOGD("do_wifi_command:before %d,%s", len, wifi_cmd);
 
 	pos = vendor_wifi_command(wifi_cmd, buf, &len);
 
-	LOGD("do_wifi_command:after %d,%s,%s", len, wifi_cmd, buf);
+	buf[len] = 0;
+
+	LOGD("do_wifi_command:after %d %d,%s,%s", pos, len, wifi_cmd, buf);
 
 	write(sock, &pos, sizeof(int));
 
