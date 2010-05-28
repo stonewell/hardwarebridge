@@ -12,16 +12,11 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
-/*
-#include <cutils/config_utils.h>
-#include <cutils/cpu_info.h>
-#include <cutils/properties.h>
-#include <cutils/sockets.h>
-*/
 #include <linux/netlink.h>
 
 
 #include "hardware_bridge.h"
+#include "cmd_dispatch.h"
 
 #define CONTROL_SOCKET "hardware_bridge"
 
@@ -33,22 +28,23 @@ static int ver_major = 1;
 static int ver_minor = 0;
 static pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int fw_sock = -1;
-static int enable_debug = 0;
+int enable_debug = 1;
 
 int bootstrap = 0;
 
 int process_framework_command(int fw_socket);
 
-int main(int argc, char **argv)
+int main(int argc, char ** argv)
 {
     int door_sock = -1;
 
     LOGI("Hardware Bridge Daemon version %d.%d", ver_major, ver_minor);
 
+    //do_test_cmd();
+
     /*
      * Create all the various sockets we'll need
      */
-
     // Socket to listen on for incomming framework connections
     if ((door_sock = android_get_control_socket(CONTROL_SOCKET)) < 0) {
         LOGE("Obtaining file descriptor socket '%s' failed: %s",
@@ -78,6 +74,7 @@ int main(int argc, char **argv)
         struct timeval to;
         int max = 0;
         int rc = 0;
+        int tmp = -1;
 
         to.tv_sec = (60 * 60);
         to.tv_usec = 0;
@@ -111,7 +108,7 @@ int main(int argc, char **argv)
 
             if (fw_sock != -1) {
                 LOGE("Dropping duplicate framework connection");
-                int tmp = accept(door_sock, &addr, &alen);
+                tmp = accept(door_sock, &addr, &alen);
                 close(tmp);
                 continue;
             }
@@ -163,16 +160,10 @@ int send_msg_with_data(char *message, char *data)
     char* buffer = (char *)alloca(strlen(message) + strlen(data) + 1);
     if (!buffer) {
         LOGE("alloca failed in send_msg_with_data");
-        return -1;
+        return result;
     }
 
     strcpy(buffer, message);
     strcat(buffer, data);
     return send_msg(buffer);
 }
-
-int process_framework_command(int fw_socket)
-{
-	return 0;
-}
-
