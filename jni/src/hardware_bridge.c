@@ -133,6 +133,10 @@ int main(int argc, char ** argv) {
 			//			header = tmp_sock;
 
 			LOGD("Accepted connection from framework,%d,%d", (int)thread_id, t_error);
+
+			if (!t_error) {
+				LOGD("Accepted connection from framework fail,%d", t_error);
+			}
 		}
 
 		//		tmp_sock = header;
