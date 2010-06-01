@@ -25,15 +25,9 @@
 
 static int ver_major = 1;
 static int ver_minor = 0;
-//static pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;
 int enable_debug = 0;
 
-int bootstrap = 0;
-
-//struct st_framework_sock {
-//	struct st_framework_sock * next;
-//	int fw_sock;
-//};
+static int pipefd[2];
 
 static void * handle_framework_sock_func(void * lpParam);
 
@@ -41,7 +35,6 @@ int process_framework_command(int fw_socket);
 
 int main(int argc, char ** argv) {
 	int door_sock = -1;
-	//struct st_framework_sock * header = NULL;
 
 	LOGI("Hardware Bridge Daemon version %d.%d", ver_major, ver_minor);
 
@@ -63,13 +56,11 @@ int main(int argc, char ** argv) {
 		exit(1);
 	}
 
-	/*
-	 * Bootstrap
-	 */
+	if (pipe(pipefd) < 0) {
+		LOGE("Unable to create pipes: %s", strerror(errno));
+		exit(1);
+	}
 
-	bootstrap = 1;
-
-	bootstrap = 0;
 	/*
 	 * Main loop
 	 */
@@ -80,24 +71,19 @@ int main(int argc, char ** argv) {
 		struct timeval to;
 		int max = 0;
 		int rc = 0;
-		//		struct st_framework_sock * tmp_sock;
-		//		struct st_framework_sock * prev_sock;
 
 		to.tv_sec = (60 * 60);
 		to.tv_usec = 0;
 
 		FD_ZERO(&read_fds);
+
 		FD_SET(door_sock, &read_fds);
 		if (door_sock > max)
 			max = door_sock;
 
-		//		tmp_sock = header;
-		//		while (tmp_sock != NULL) {
-		//			FD_SET(tmp_sock->fw_sock, &read_fds);
-		//			if (tmp_sock->fw_sock > max)
-		//				max = tmp_sock->fw_sock;
-		//			tmp_sock = tmp_sock->next;
-		//		}
+		FD_SET(pipefd[0], &read_fds);
+		if (pipefd[0] > max)
+			max = pipefd[0];
 
 		if ((rc = select(max + 1, &read_fds, NULL, NULL, &to)) < 0) {
 			LOGE("select() failed (%s)", strerror(errno));
@@ -107,6 +93,15 @@ int main(int argc, char ** argv) {
 
 		if (!rc) {
 			continue;
+		}
+
+		if (FD_ISSET(pipefd[0], &read_fds)) {
+			pthread_t tmp;
+
+			if (sizeof(pthread_t) == read(pipefd[0], &tmp, sizeof(pthread_t))) {
+				pthread_join(tmp, NULL);
+				LOGD("Join child thread,%ld", tmp);
+			}
 		}
 
 		if (FD_ISSET(door_sock, &read_fds)) {
@@ -126,49 +121,12 @@ int main(int argc, char ** argv) {
 			t_error = pthread_create(&thread_id, NULL,
 					handle_framework_sock_func, (void*)fw_sock);
 
-			//			tmp_sock = (struct st_framework_sock *)malloc(
-			//					sizeof(struct st_framework_sock));
-			//			tmp_sock->fw_sock = fw_sock;
-			//			tmp_sock->next = header;
-			//			header = tmp_sock;
-
 			LOGD("Accepted connection from framework,%d,%d", (int)thread_id, t_error);
 
-			if (!t_error) {
-				LOGD("Accepted connection from framework fail,%d", t_error);
+			if (t_error) {
+				LOGE("create thread to process framework command fail,%d", t_error);
 			}
 		}
-
-		//		tmp_sock = header;
-		//		prev_sock = NULL;
-		//		while (tmp_sock != NULL) {
-		//			if (FD_ISSET(tmp_sock->fw_sock, &read_fds)) {
-		//				if ((rc = process_framework_command(tmp_sock->fw_sock)) < 0) {
-		//					if (rc == -ECONNRESET) {
-		//						LOGE("Framework disconnected");
-		//						close(tmp_sock->fw_sock);
-		//
-		//						if (prev_sock == NULL)
-		//							header = tmp_sock->next;
-		//						else
-		//							prev_sock->next = tmp_sock->next;
-		//
-		//						free(tmp_sock);
-		//
-		//						if (prev_sock == NULL)
-		//							tmp_sock = header;
-		//						else
-		//							tmp_sock = prev_sock->next;
-		//					} else {
-		//						LOGE("Error processing framework command (%s)",
-		//								strerror(errno));
-		//					}
-		//				}
-		//			} else {
-		//				prev_sock = tmp_sock;
-		//				tmp_sock = tmp_sock->next;
-		//			}
-		//		}
 
 	} // while
 
@@ -177,6 +135,7 @@ int main(int argc, char ** argv) {
 static void * handle_framework_sock_func(void * lpParam) {
 	int rc;
 	int fw_sock;
+	pthread_t self = pthread_self();
 
 	fw_sock = (int) lpParam;
 	while (1) {
@@ -213,6 +172,8 @@ static void * handle_framework_sock_func(void * lpParam) {
 			}
 		}//process frame work command
 	}//while
+
+	write(pipefd[1], &self, sizeof(pthread_t) );
 
 	return (void*)0;
 }
