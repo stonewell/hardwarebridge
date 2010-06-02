@@ -1,7 +1,6 @@
 #ifndef __HARDWARE_BRIDGE_H__
 #define __HARDWARE_BRIDGE_H__
 
-#include <jni.h>
 #include <android/log.h>
 
 extern int enable_debug;
