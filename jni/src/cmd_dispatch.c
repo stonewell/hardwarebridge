@@ -7,13 +7,15 @@
 #include "cmd_dispatch.h"
 
 #include "wifi.h"
+#include "vibrator.h"
 
 struct cmd_dispatch {
 	char *cmd;
 	int (* dispatch)(int sock, char *);
 };
 
-#define FRAMEWORK_FUNC0(x) static int do_##x(int sock, char *cmd) \
+#define FRAMEWORK_FUNC0(x) \
+	static int do_##x(int sock, char *cmd) \
 { \
 	int ret = -1; \
     ret = vendor_##x(); \
@@ -32,9 +34,11 @@ FRAMEWORK_FUNC0(wifi_unload_driver)
 FRAMEWORK_FUNC0(wifi_start_supplicant)
 FRAMEWORK_FUNC0(wifi_stop_supplicant)
 FRAMEWORK_FUNC0(wifi_close_supplicant_connection)
+FRAMEWORK_FUNC0(vibrator_off)
 
 static int do_wifi_wait_for_event(int sock, char *cmd);
 static int do_wifi_command(int sock, char *cmd);
+static int do_vibrator_on(int sock, char * cmd);
 
 static struct cmd_dispatch dispatch_table[] = {
 		FRAMEWORK_CMD_DISPATCH_ENTRY(wifi_load_driver),
@@ -42,9 +46,13 @@ static struct cmd_dispatch dispatch_table[] = {
 		FRAMEWORK_CMD_DISPATCH_ENTRY(wifi_start_supplicant),
 		FRAMEWORK_CMD_DISPATCH_ENTRY(wifi_stop_supplicant),
 		FRAMEWORK_CMD_DISPATCH_ENTRY(wifi_connect_to_supplicant),
-		FRAMEWORK_CMD_DISPATCH_ENTRY(wifi_close_supplicant_connection), {
-		"wifi_wait_for_event", do_wifi_wait_for_event }, { "wifi_command",
-		do_wifi_command }, { NULL, NULL } };
+		FRAMEWORK_CMD_DISPATCH_ENTRY(wifi_close_supplicant_connection),
+		FRAMEWORK_CMD_DISPATCH_ENTRY(wifi_wait_for_event),
+		FRAMEWORK_CMD_DISPATCH_ENTRY(wifi_command),
+		FRAMEWORK_CMD_DISPATCH_ENTRY(vibrator_on),
+		FRAMEWORK_CMD_DISPATCH_ENTRY(vibrator_off),
+		{ NULL, NULL }
+};
 
 int process_framework_command(int socket) {
 	int rc;
@@ -188,3 +196,13 @@ static int do_wifi_command(int sock, char *cmd) {
 	return pos;
 }
 
+static int do_vibrator_on(int sock, char * cmd)
+{
+	int timeout = atoi(&cmd[strlen("vibrator_on")]);
+
+	int ret = vendor_vibrator_on(timeout);
+
+	write(sock, &ret, sizeof(int));
+
+    return ret;
+}
