@@ -21,6 +21,7 @@ VENDOR_FUNC0_INT(vibrator_off);
 static int make_sure_functions_ok() {
 
 	if (!g_hardware_legacy_handler) {
+		LOGE("invalid hardware legacy handler");
 		return -1;
 	}
 

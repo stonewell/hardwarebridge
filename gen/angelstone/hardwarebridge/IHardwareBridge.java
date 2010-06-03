@@ -1,6 +1,6 @@
 /*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: /home/angelstone/Work/Cpp/hardwarebridge/src/angelstone/hardwarebridge/IHardwareBridge.aidl
+ * Original file: /home/angelstone/Work/Cpp/hardware_bridge/src/angelstone/hardwarebridge/IHardwareBridge.aidl
  */
 package angelstone.hardwarebridge;
 import java.lang.String;
