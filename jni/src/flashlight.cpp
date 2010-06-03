@@ -11,12 +11,13 @@
 
 #include "hardware_bridge.h"
 #include "vendor.h"
-#include "vibrator.h"
+#include "flashlight.h"
 
 static int make_sure_functions_ok();
 
-VENDOR_FUNC1_INT_INT( vibrator_on);
-VENDOR_FUNC0_INT( vibrator_off);
+VENDOR_FUNC0_INT(get_flashlight_enabled);
+VENDOR_FUNC1_INT_INT(set_flashlight_enabled);
+VENDOR_FUNC1_INT_INT(enable_camera_flash);
 
 static int make_sure_functions_ok() {
 
@@ -25,9 +26,11 @@ static int make_sure_functions_ok() {
 		return -1;
 	}
 
-	VENDOR_FUNC1_INT_INT_SYM_ENTRY(vibrator_on);
-	VENDOR_FUNC0_INT_SYM_ENTRY(vibrator_off);
+	VENDOR_FUNC1_INT_INT_SYM_ENTRY(set_flashlight_enabled);
+	VENDOR_FUNC1_INT_INT_SYM_ENTRY(enable_camera_flash);
+	VENDOR_FUNC0_INT_SYM_ENTRY(get_flashlight_enabled);
 
 	return 0;
 }
+
 
