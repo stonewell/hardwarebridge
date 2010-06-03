@@ -1,8 +1,13 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#ifdef BUILD_HARDWARE_LEGACY
+#include <binder/Parcel.h>
+#include <binder/IServiceManager.h>
+#else
 #include <utils/Parcel.h>
 #include <utils/IServiceManager.h>
+#endif
 #include <utils/String8.h>
 
 using namespace android;

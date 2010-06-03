@@ -1,7 +1,12 @@
 #ifndef __IHARDWARE_BRIDGE_H__
 #define __IHARDWARE_BRIDGE_H__
 
+#ifdef BUILD_HARDWARE_LEGACY
+#include <binder/IInterface.h>
+#else
 #include <utils/IInterface.h>
+#endif
+
 #include <utils/String16.h>
 
 namespace hardwarebridge {
