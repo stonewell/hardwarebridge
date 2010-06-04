@@ -13,7 +13,8 @@ static Mutex gLock;
 
 const sp<hardwarebridge::IHardwareBridge>& get_hardware_bridge() {
 	Mutex::Autolock _l(gLock);
-	if (gHardwareBridge.get() == 0) {
+	//if (gHardwareBridge.get() == 0) {
+	//sp<hardwarebridge::IHardwareBridge> gHardwareBridge;
 		sp<IServiceManager> sm = defaultServiceManager();
 		sp<IBinder> binder;
 		do {
@@ -24,7 +25,7 @@ const sp<hardwarebridge::IHardwareBridge>& get_hardware_bridge() {
 			usleep(500000); // 0.5 s
 		} while (true);
 		gHardwareBridge = interface_cast<hardwarebridge::IHardwareBridge> (binder);
-	}
+	//}
 	LOGE_IF(gHardwareBridge == 0, "no HardwareBridge!?");
 	return gHardwareBridge;
 }

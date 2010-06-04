@@ -141,6 +141,7 @@ namespace hardwarebridge {
 						}
 					}
 
+					LOGD("Wifi Command:%s,%d,%s", cmd, ret, reply_buf);
 					delete reply_buf;
 					return NO_ERROR;
 				}
@@ -152,9 +153,10 @@ namespace hardwarebridge {
 					data.read(buf, buflen);
 					int ret = wifi_wait_for_event(buf, buflen);
 					reply->writeInt32(ret);
-					if (!ret) {
+					if (ret >= 0) {
 						reply->write(buf, buflen);
 					}
+					LOGD("Wifi WaitForEvent:%d,%s", ret, buf);
 					delete buf;
 					return NO_ERROR;
 				}

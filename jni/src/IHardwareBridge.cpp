@@ -103,7 +103,7 @@ namespace hardwarebridge {
 
 			int ret = reply.readInt32();
 
-			if (!ret) {
+			if (ret >= 0) {
 				reply.read(buf, buflen);
 			}
 
