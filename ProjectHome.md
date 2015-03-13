@@ -1,0 +1,1 @@
+Android platform already have the 2.2, but most phones in market still running on 1.5 or 1.6, to make the old hardwares running on user customized ROM, a daemon service will be created to delegate calls to libhardware to the vendor version libhardware
